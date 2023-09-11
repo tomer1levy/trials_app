@@ -7,14 +7,15 @@ import tkinter
 selected_option = None
 port = None
 def port_search():
-    port_window = tk.Tk()
     # Find the right port
     usb_ports = [p.device for p in list_ports.comports() if 'USB' in p.description]
     if len(usb_ports) == 0:
         print('No USB ports found')
         exit()
+    elif len(usb_ports) == 1:
+        port = usb_ports[0]
     else:
-        print('Multiple USB ports found. ')
+        port_window = tk.Tk()
         ports_list = [port for i, port in enumerate(usb_ports)]
 
         def select(event):
@@ -40,6 +41,6 @@ def port_search():
         confirm_button = tk.Button(text='confirm', command=confirm)
         confirm_button.pack()
 
-    port_window.mainloop()
+        port_window.mainloop()
     return port
 
