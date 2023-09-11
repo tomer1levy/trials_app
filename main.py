@@ -1,3 +1,4 @@
+from port_searching import port_search
 from tkinter import *
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -23,11 +24,13 @@ RSSI_data = []
 fp_data = []
 in_measurement = True
 SAMPLE_SIZE = 13
+ani1 = None
+ani2 = None
+ani3 = None
 
-# start serial connection, and wait for ESP32 to be ready
-usb_port = serial.Serial('COM4', 115200)
+port = port_search()
+usb_port = serial.Serial(port, 115200)
 time.sleep(2)
-
 
 # Create a function to update the animation frames
 def update_animation(frame):
@@ -58,27 +61,32 @@ def update_animation(frame):
     ax_fp.set_title("fp")
 
     # Update the stats
-    stat_table.itemconfig(distance_av, text=f'{s.mean(dis_data)}')
-    stat_table.itemconfig(RSSI_av, text=f'{s.mean(RSSI_data)}')
-    stat_table.itemconfig(fp_av, text=f'{s.mean(fp_data)}')
     if len(x_data) > 2:
+        stat_table.itemconfig(distance_av, text=f'{s.mean(dis_data)}')
+        stat_table.itemconfig(RSSI_av, text=f'{s.mean(RSSI_data)}')
+        stat_table.itemconfig(fp_av, text=f'{s.mean(fp_data)}')
         stat_table.itemconfig(distance_std, text=f'{s.std(dis_data)}')
         stat_table.itemconfig(RSSI_std, text=f'{s.std(RSSI_data)}')
         stat_table.itemconfig(fp_std, text=f'{s.std(fp_data)}')
 
 
 def read():
+
     distance1 = None
-    '''
+    i = 0
     while distance1 is None:
+        i += 1
         usb_port.write(f"go {SAMPLE_SIZE}\n".encode())
         line = usb_port.readline().decode()
         elements = line.split(' ')
         if len(elements) > 4:
             if elements[4] == 'range:':
                 distance1 = float(elements[5].strip())
-    '''
-    distance1 = 5 + np.random.randint(-100, 100) / 100
+        if i > 25:
+            print('error')
+            raise
+            window.quit()
+    #distance1 = d + np.random.randint(-100, 100) / 100
     return distance1, -80 + np.random.randint(-100, 100) / 50, -70 + np.random.randint(-100, 100) / 50
 
 
@@ -128,17 +136,23 @@ fp_std = stat_table.create_text(740, 170, text='0', font=font)
 # Start the animation
 def start():
     global in_measurement
-    if in_measurement:
+    global counter
+    global ani1
+    global ani2
+    global ani3
+    if start_button.cget('text') == "Start":
+
+        in_measurement = True
         # Create a FuncAnimation object
-        ani1 = FuncAnimation(dis_fig, update_animation)
-        ani2 = FuncAnimation(RSSI_fig, update_animation)
-        ani3 = FuncAnimation(fp_fig, update_animation)
+        ani1 = FuncAnimation(dis_fig, update_animation, repeat=False, cache_frame_data=False)
+        ani2 = FuncAnimation(RSSI_fig, update_animation, repeat=False, cache_frame_data=False)
+        ani3 = FuncAnimation(fp_fig, update_animation, repeat=False, cache_frame_data=False)
         ani1._start()
         ani2._start()
         ani3._start()
-    if not in_measurement:
+    if start_button.cget('text') == "clear":
         current_datetime = datetime.datetime.now()
-        if save_to_file:
+        if save_to_file.get():
             data = pd.DataFrame({'distance': dis_data, 'RSSI': RSSI_data, 'fp': fp_data})
             data.to_csv(f'{round(data["distance"].mean(), 2)}m{current_datetime.hour},{current_datetime.minute}.csv')
         x_data.clear()
@@ -146,10 +160,12 @@ def start():
         RSSI_data.clear()
         fp_data.clear()
         stop_button.config(text='stop')
-        start_button.config(text='start')
-        global counter
+        start_button.config(text='Start')
         counter = count()
-        in_measurement = not in_measurement
+        #in_measurement = not in_measurement
+        ani1.event_source.stop()
+        ani2.event_source.stop()
+        ani3.event_source.stop()
 
 
 def stop():
@@ -169,7 +185,7 @@ start_button = Button(window, text="Start", command=start)
 stop_button = Button(window, text="stop", command=stop)
 
 # Create a variable to store the checkbox's state
-save_to_file = IntVar()
+save_to_file = BooleanVar()
 
 # Create a Checkbutton widget
 checkbox = Checkbutton(window, text="save this measurement?", variable=save_to_file)
