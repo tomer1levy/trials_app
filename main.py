@@ -12,6 +12,7 @@ import serial
 import time
 
 # parameters
+interval = 500
 measurement_in_graph = 70
 fig_size = (3, 2)
 font = ("Helvetica", 16)
@@ -43,6 +44,7 @@ def update_animation(frame):
         dis_data.append(distance)
         RSSI_data.append(rssi)
         fp_data.append(fp)
+
     if len(x_data) > measurement_in_graph:
         ax_distance.plot(x_data[-1 * measurement_in_graph:], dis_data[-1 * measurement_in_graph:])
         ax_RSSI.plot(x_data[-1 * measurement_in_graph:], RSSI_data[-1 * measurement_in_graph:])
@@ -51,7 +53,6 @@ def update_animation(frame):
         ax_distance.plot(x_data, dis_data)
         ax_RSSI.plot(x_data, RSSI_data)
         ax_fp.plot(x_data, fp_data)
-
     # Set the axes
     ax_distance.set_xlabel("measure")
     ax_distance.set_title("distance")
@@ -74,6 +75,7 @@ def read():
 
     distance1 = None
     i = 0
+
     while distance1 is None:
         i += 1
         usb_port.write(f"go {SAMPLE_SIZE}\n".encode())
@@ -82,12 +84,15 @@ def read():
         if len(elements) > 4:
             if elements[4] == 'range:':
                 distance1 = float(elements[5].strip())
+                rx = float(elements[7].strip())
+                fp = float(elements[9].strip())
         if i > 25:
             print('error')
             raise
             window.quit()
-    #distance1 = d + np.random.randint(-100, 100) / 100
-    return distance1, -80 + np.random.randint(-100, 100) / 50, -70 + np.random.randint(-100, 100) / 50
+
+    #distance1 = 5 + np.random.randint(-100, 100) / 100
+    return distance1, rx, fp
 
 
 # Create the main application window
@@ -144,9 +149,9 @@ def start():
 
         in_measurement = True
         # Create a FuncAnimation object
-        ani1 = FuncAnimation(dis_fig, update_animation, repeat=False, cache_frame_data=False)
-        ani2 = FuncAnimation(RSSI_fig, update_animation, repeat=False, cache_frame_data=False)
-        ani3 = FuncAnimation(fp_fig, update_animation, repeat=False, cache_frame_data=False)
+        ani1 = FuncAnimation(dis_fig, update_animation,interval=interval , repeat=False, cache_frame_data=False)
+        ani2 = FuncAnimation(RSSI_fig, update_animation, repeat=False,interval=interval, cache_frame_data=False)
+        ani3 = FuncAnimation(fp_fig, update_animation, repeat=False, cache_frame_data=False, interval=interval)
         ani1._start()
         ani2._start()
         ani3._start()

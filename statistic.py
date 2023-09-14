@@ -7,4 +7,4 @@ def std(list1):
     av = mean(list1)
     for num in list1:
         res += (num - av)**2
-    return round((res / (len(list1) - 1)) ** 0.5, 2)
+    return (res / (len(list1) - 1)) ** 0.5
